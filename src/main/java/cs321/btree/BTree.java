@@ -120,14 +120,16 @@ public class BTree implements BTreeInterface {
         fileChannel.read(buffer);
         buffer.clear();
 
+        int n = buffer.getInt(); // TODO do we need this?
+
         // Read each value from the node
-        int loopMax = this.numNodes; //fixme upper condition might be wrong
-        TreeObject[] keys = new TreeObject[loopMax];
-        for (int i = 0; i < this.nodeSize; i++) {
+        int maxNumNodes = this.numNodes; // fixme upper condition might be wrong
+        TreeObject[] keys = new TreeObject[maxNumNodes];
+        for (int i = 0; i < maxNumNodes; i++) {
             long value = buffer.getLong();
             long freq = buffer.getLong(); // Read frequency
 
-            String strValue = "" + value; // fixme this is probably wrong
+            String strValue = "" + value;
             keys[i] = new TreeObject(strValue, freq);
         }
 
@@ -135,11 +137,21 @@ public class BTree implements BTreeInterface {
         byte flag = buffer.get();
         boolean leaf = (flag == 1);
 
+        // Read data for each child pointer
+        int maxNumChildren = 2 * degree;
+        long[] children = new long[2 * degree];
+        for (int i = 0; i < 2 * degree; i++) {
+            children[i] = buffer.getLong();
+        }
 
-        //TODO finish this based on DiskReadWrite example
+        BTreeNode node = new BTreeNode(keys, leaf);
+        node.n = n;
+        for (int i = 0; i < maxNumChildren; i++) {
+            node.setChild(i, children[i]);
+        }
+        node.address = diskAddress;
 
-        return null; //fixme
-
+        return node;
     }
 
     /**
@@ -147,8 +159,37 @@ public class BTree implements BTreeInterface {
      * @param node the {@code BTreeNode} to write
      * @throws IOException
      */
-    public void diskWrite(BTreeNode node) throws IOException {
+    public long diskWrite(BTreeNode node) throws IOException {
+        fileChannel.position(node.address);
+        buffer.clear();
 
+        buffer.putInt(node.n);
+
+
+
+        int numKeys = node.numKeys;
+        for (int i = 0; i < numKeys; i++) {
+            buffer.putLong(Long.parseLong(node.getKey(i).getKey())); // Write value
+            buffer.putLong(node.getKey(i).getCount()); // Write frequency
+        }
+
+        //TODO refactor this
+        if (node.leaf()) {
+            buffer.put((byte) 1);
+        }
+        else {
+            buffer.put((byte) 0);
+        }
+
+        int numChildren = degree * 2;
+        for (int i = 0; i < numChildren; i++) {
+            buffer.putLong(node.getChild(i));
+        }
+
+        buffer.flip();
+        fileChannel.write(buffer);
+
+        return 0; //fixme
     }
 
     /**
@@ -188,14 +229,14 @@ public class BTree implements BTreeInterface {
      */
     @Override
     public void insert(TreeObject obj) throws IOException {
-        /*
-        r == T.root
-        if r.n == 2t-1
-            s = BTreeSplitRoot()
-            BtreeInsertNonfull(s, k)
-        else
-            BtreeInsertNonfull(r, k)
-         */
+        BTreeNode rootNode = root;
+        if (rootNode.numKeys == 2*degree-1) {
+            BTreeNode newRoot = BtreeSplitRoot();
+            BtreeInsertNonfull(newRoot, obj);
+        }
+        else {
+            BtreeInsertNonfull(root, obj);
+        }
     }
 
     /**
@@ -260,7 +301,7 @@ public class BTree implements BTreeInterface {
         s.leaf = false;
         s.numKeys = 0;
         s.children[0] = offset;
-        offset = diskWrite(s);
+        //offset = diskWrite(s);
         BtreeSplitChild(s, 0);
         return s;
     }
@@ -288,6 +329,33 @@ public class BTree implements BTreeInterface {
 
      */
 
+    private void BtreeInsertNonfull(BTreeNode node, TreeObject obj) throws IOException {
+        int i =node.numKeys -1;
+        if (node.leaf()) {
+            while (i >= 0 && obj.compareTo(node.keys[i]) < 0){
+                node.keys[i+1] = node.keys[i];
+                i--;
+            }
+            node.keys[i+1] = obj;
+            node.numKeys++;
+            diskWrite(node);
+        } else {
+            while (i >= 0 && obj.compareTo(node.keys[i]) < 0) {
+                i--;
+            }
+            i++;
+            BTreeNode newNode = diskRead(node.children[i]);
+            if (newNode.numKeys == 2 * degree - 1) {
+                BtreeSplitChild(node, i);
+                if (obj.compareTo(node.keys[i]) > 0) {
+                    i++;
+                }
+            }
+            newNode = diskRead(node.children[i]);
+            BtreeInsertNonfull(newNode, obj);
+        }
+    }
+
     private class BTreeNode {
 
         private TreeObject[] keys;
@@ -295,6 +363,8 @@ public class BTree implements BTreeInterface {
         private boolean leaf;
         private long[] children;
         private long address; // Disk offset (bytes)
+
+        private int n;
 
         /**
          * Calculate the size of a node as stored on disk (in bytes). We will store boolean
@@ -323,6 +393,14 @@ public class BTree implements BTreeInterface {
         }
 
         /**
+         * Creates a new {@code BTreeNode} with an empty {@code keys} array and given leaf status.
+         * @param leaf whether the created node is a leaf (has no children)
+         */
+        public BTreeNode(boolean leaf) {
+            this(new TreeObject[2 * degree - 1], true);
+        }
+
+        /**
          * Gets whether this node is a leaf.
          * @return true if this node is a leaf, false otherwise
          */
@@ -330,13 +408,6 @@ public class BTree implements BTreeInterface {
             return leaf;
         }
 
-        /**
-         * Creates a new {@code BTreeNode} with an empty {@code keys} array and given leaf status.
-         * @param leaf whether the created node is a leaf (has no children)
-         */
-        public BTreeNode(boolean leaf) {
-            this(new TreeObject[2 * degree - 1], true);
-        }
 
         /**
          * Checks if this node is full.
@@ -362,6 +433,15 @@ public class BTree implements BTreeInterface {
          */
         public void setKey(int i, TreeObject key) {
             keys[i] = key;
+        }
+
+        /**
+         * Sets this node's child pointer at index {@code i} to {@code address}
+         * @param i the index
+         * @param address the address value to which to assign the child pointer
+         */
+        public void setChild(int i, long address) {
+            children[i] = address;
         }
 
         /**
