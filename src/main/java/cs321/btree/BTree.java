@@ -17,7 +17,7 @@ public class BTree implements BTreeInterface {
     private FileChannel fileChannel;
     private long offset;
 
-    private final  int METADATA_SIZE = Long.BYTES;
+    private final int METADATA_SIZE = Long.BYTES;
     private long nextDiskAddress = METADATA_SIZE;
 
 
@@ -25,6 +25,7 @@ public class BTree implements BTreeInterface {
 
     /**
      * Creates a new {@code BTree} with default minimum degree of 2 and specified filename.
+     *
      * @param filename the name of the file where the {@code BTree} will be stored
      */
     public BTree(String filename) throws BTreeException {
@@ -33,7 +34,8 @@ public class BTree implements BTreeInterface {
 
     /**
      * Creates a new {@code BTree} with specified degree and filename.
-     * @param degree the minimum degree of the {@code BTree}
+     *
+     * @param degree   the minimum degree of the {@code BTree}
      * @param filename the name of the file where the {@code BTree} will be stored
      */
     public BTree(int degree, String filename) throws BTreeException {
@@ -70,6 +72,7 @@ public class BTree implements BTreeInterface {
 
     /**
      * Read the metadata from the data file.
+     *
      * @throws IOException
      */
     public void readMetaData() throws IOException {
@@ -87,6 +90,7 @@ public class BTree implements BTreeInterface {
 
     /**
      * Write the metadata to the data file.
+     *
      * @throws IOException
      */
     public void writeMetaData() throws IOException {
@@ -103,6 +107,7 @@ public class BTree implements BTreeInterface {
 
     /**
      * Reads a {@code BTreeNode} from the disk and returns a {@code BTreeNode} object built from the data
+     *
      * @param diskAddress the address offset, in bytes, for the node in the data file
      * @return the {@code BTreeNode} object
      * @throws IOException
@@ -144,6 +149,7 @@ public class BTree implements BTreeInterface {
 
     /**
      * Writes a {@code BTreeNode} to the disk at the specified disk offset address in the {@code BTreeNode} object.
+     *
      * @param node the {@code BTreeNode} to write
      * @throws IOException
      */
@@ -188,14 +194,14 @@ public class BTree implements BTreeInterface {
      */
     @Override
     public void insert(TreeObject obj) throws IOException {
-        /*
-        r == T.root
-        if r.n == 2t-1
-            s = BTreeSplitRoot()
-            BtreeInsertNonfull(s, k)
-        else
-            BtreeInsertNonfull(r, k)
-         */
+        BTreeNode rootNode = root;
+        if (rootNode.numKeys == 2*degree-1) {
+            BTreeNode newRoot = BtreeSplitRoot();
+            BtreeInsertNonfull(newRoot, obj);
+        }
+        else {
+            BtreeInsertNonfull(root, obj);
+        }
     }
 
     /**
@@ -264,29 +270,33 @@ public class BTree implements BTreeInterface {
         BtreeSplitChild(s, 0);
         return s;
     }
-    /*
-    BtreeInsertNonfull()
-        i = n-1
-        if x.leaf
-            while i >= 0 and k < x.key[i]
-                x.key[i+1] = x.k[i]
-                i = i-1
-            x.k[i+1] = k
-            x.n = x.n+1
-            DiskWrite(x)
-        else
-            while i >= 0 and k < k.key[i]
-                i = i-1
-            i = i+1
-            DiskRead(x.c[i])
-            if x.c[i].n == 2t-1
-                BtreeSplitChild(x, i)
-                if k > x.key[i]
-                    i = i+1
-                    DiskRead(x.c[i])
-            BTreeInsertNonFull(x.c[i], k)
 
-     */
+    private void BtreeInsertNonfull(BTreeNode node, TreeObject obj) throws IOException {
+    int i =node.numKeys -1;
+        if (node.leaf()) {
+            while (i >= 0 && obj.compareTo(node.keys[i]) < 0){
+                node.keys[i+1] = node.keys[i];
+                i--;
+        }
+            node.keys[i+1] = obj;
+            node.numKeys++;
+            diskWrite(node);
+        } else {
+            while (i >= 0 && obj.compareTo(node.keys[i]) < 0) {
+                i--;
+            }
+            i++;
+            BTreeNode newNode = diskRead(node.children[i]);
+            if (newNode.numKeys == 2 * degree - 1) {
+                BtreeSplitChild(node, i);
+                if (obj.compareTo(node.keys[i]) > 0) {
+                    i++;
+                }
+            }
+            newNode = diskRead(node.children[i]);
+            BtreeInsertNonfull(newNode, obj);
+        }
+}
 
     private class BTreeNode {
 
