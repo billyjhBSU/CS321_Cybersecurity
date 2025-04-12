@@ -52,10 +52,26 @@ public class BTreeTest {
     //  assert that the constructed tree has the expected number of nodes and
     //  assert that some (or all) of the nodes have the expected values
     @Test
-    public void btreeDegree4Test()
+    public void btreeDegree4Test() throws BTreeException
     {
-//        //TODO instantiate and populate a bTree object
-//        int expectedNumberOfNodes = TBD;
+        int expectedNumberOfNodes = 10;
+        BTree b = new BTree(4, testFilename);
+        assertEquals(4, b.getDegree());
+
+        String[] expectedNodesContent = new String[] {
+            "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
+        };
+
+        for (int i = 1; i <= expectedNumberOfNodes; i++)
+        {
+            b.insert(new TreeObject(i + ""));
+        }
+        assertEquals(10, b.getSize());
+
+        for (int i = 0; i < expectedNumberOfNodes; i++)
+        {
+            assertEquals(expectedNodesContent[i], b.getArrayOfNodeContentsForNodeIndex(i).toString());
+        }
 //
 //        // it is expected that these nodes values will appear in the tree when
 //        // using a level traversal (i.e., root, then level 1 from left to right, then
