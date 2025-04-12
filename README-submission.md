@@ -2,10 +2,10 @@
 ## Team Members
 
 | Last Name | First Name | GitHub User Name |
-|-----------|------------|-----------------|
-| Hoffert   | William    | billyjhBSU      |
-| TBD       | TBD        | TBD             |
-| TBD       | TBD        | TBD             |
+|-----------|------------|------------------|
+| Hoffert   | William    | billyjhBSU       |
+| Maksic    | Adnan      | automaticm       |
+| TBD       | TBD        | TBD              |
 
 # Test Results
 How many of the dumpfiles matched (using the check-dump-files.sh script)?

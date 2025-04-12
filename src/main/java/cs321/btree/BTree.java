@@ -17,7 +17,7 @@ public class BTree implements BTreeInterface {
     private FileChannel fileChannel;
     private long offset;
 
-    private final  int METADATA_SIZE = Long.BYTES;
+    private final int METADATA_SIZE = Long.BYTES;
     private long nextDiskAddress = METADATA_SIZE;
 
 
@@ -190,7 +190,6 @@ public class BTree implements BTreeInterface {
         fileChannel.write(buffer);
 
         return 0; //fixme
-    }
 
     /**
      * {@inheritDoc}
@@ -305,6 +304,7 @@ public class BTree implements BTreeInterface {
         BtreeSplitChild(s, 0);
         return s;
     }
+      
     /*
     BtreeInsertNonfull()
         i = n-1
@@ -336,6 +336,7 @@ public class BTree implements BTreeInterface {
                 node.keys[i+1] = node.keys[i];
                 i--;
             }
+        }
             node.keys[i+1] = obj;
             node.numKeys++;
             diskWrite(node);
@@ -354,7 +355,6 @@ public class BTree implements BTreeInterface {
             newNode = diskRead(node.children[i]);
             BtreeInsertNonfull(newNode, obj);
         }
-    }
 
     private class BTreeNode {
 
@@ -365,7 +365,6 @@ public class BTree implements BTreeInterface {
         private long address; // Disk offset (bytes)
 
         private int n;
-
         /**
          * Calculate the size of a node as stored on disk (in bytes). We will store boolean
          * as 1 byte as its nodeSize is not defined in Java
@@ -408,6 +407,13 @@ public class BTree implements BTreeInterface {
             return leaf;
         }
 
+        /**
+         * Creates a new {@code BTreeNode} with an empty {@code keys} array and given leaf status.
+         * @param leaf whether the created node is a leaf (has no children)
+         */
+        public BTreeNode(boolean leaf) {
+            this(new TreeObject[2 * degree - 1], true);
+        }
 
         /**
          * Checks if this node is full.
