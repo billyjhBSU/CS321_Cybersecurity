@@ -108,7 +108,7 @@ public class BTreeTest {
         assertEquals(0, b.getHeight());
 
         //size should be 0
-        assertEquals(0, b.getSize());
+        assertEquals(0, b.getNodeSize());
 
         //will have only 1 node, the root
         assertEquals(1, b.getNumberOfNodes());
@@ -145,7 +145,7 @@ public class BTreeTest {
 
         b.insert(new TreeObject("1"));
 
-        assertEquals(1, b.getSize());
+        assertEquals(1, b.getNodeSize());
         assertEquals(0, b.getHeight());
 
         assertTrue(validateInserts(b, new String[]{"1"}));
@@ -169,7 +169,7 @@ public class BTreeTest {
             b.insert(new TreeObject(i + ""));
         }
 
-        assertEquals(10, b.getSize());
+        assertEquals(10, b.getNodeSize());
         assertEquals(2, b.getHeight());
 
         assertTrue(validateInserts(b, input));
@@ -194,7 +194,7 @@ public class BTreeTest {
             b.insert(new TreeObject(i + ""));
         }
 
-        assertEquals(10, b.getSize());
+        assertEquals(10, b.getNodeSize());
         assertEquals(2, b.getHeight());
 
         assertTrue(validateInserts(b, input));
@@ -217,7 +217,7 @@ public class BTreeTest {
             b.insert(new TreeObject(1 + ""));
         }
 
-        assertEquals(1, b.getSize());
+        assertEquals(1, b.getNodeSize());
         assertEquals(0, b.getHeight());
 
         assertTrue(validateInserts(b, new String[]{"1", "1", "1", "1", "1", "1", "1", "1", "1", "1"}));
@@ -242,7 +242,7 @@ public class BTreeTest {
             b.insert(new TreeObject(i + ""));
         }
 
-        assertEquals(10000, b.getSize());
+        assertEquals(10000, b.getNodeSize());
 
         assertTrue(validateInserts(b, input));
     }
@@ -266,13 +266,13 @@ public class BTreeTest {
             b.insert(new TreeObject(input[i]));
         }
 
-        assertEquals(7, b.getSize());
+        assertEquals(7, b.getNodeSize());
         assertEquals(0, b.getHeight());
         assertEquals(1, b.getNumberOfNodes());
 
         b.insert(new TreeObject(input[7])); //Insert 'B'
 
-        assertEquals(8, b.getSize());
+        assertEquals(8, b.getNodeSize());
         assertEquals(1, b.getHeight());
         assertEquals(3, b.getNumberOfNodes());
 
