@@ -143,7 +143,7 @@ public class BTree implements BTreeInterface {
             buffer.get(keyBytes);
 
             // Convert byte array to string
-            String key = new String(keyBytes);
+            String key = new String(keyBytes).trim();
 
             // Remaining 8 bytes in this TreeObject are the frequency
             long frequency = buffer.getLong();
@@ -306,21 +306,6 @@ public class BTree implements BTreeInterface {
      * {@inheritDoc}
      */
     @Override
-    public void insert(TreeObject obj) throws IOException {
-        BTreeNode oldRoot = root;
-        if (oldRoot.numKeys == 2 * degree - 1) {
-            BTreeNode newRoot = splitRoot(); // splitRoot() Handles disk/metadata updating
-            insertNonfull(newRoot, obj);
-        }
-        else {
-            insertNonfull(oldRoot, obj);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public void dumpToFile(PrintWriter out) throws IOException {
 
     }
@@ -338,7 +323,30 @@ public class BTree implements BTreeInterface {
      */
     @Override
     public TreeObject search(String key) throws IOException {
-        return null;
+        return searchFromNode(key, root);
+    }
+
+    /**
+     * Searches for the given key in the BTree rooted at {@code node}.
+     * @param node the node from which to begin the search
+     * @param key the key value to search for
+     * @return the {@code TreeObject} in this BTree containing {@code key}
+     * @throws IOException if issue occurs with disk read
+     */
+    private TreeObject searchFromNode(String key, BTreeNode node) throws IOException {
+        int i = 0;
+        while (i < numNodes && key.compareTo(node.getKeyAt(i).getKey()) > 0) {
+            i += 1;
+        }
+        if (i < node.numKeys && key.equals(node.getKeyAt(i).getKey())) {
+            return node.getKeyAt(i);
+        }
+        else if (node.isLeaf()) {
+            return null;
+        }
+        else {
+            return searchFromNode(key, diskRead(node.getChild(i)));
+        }
     }
 
     /**
@@ -349,18 +357,33 @@ public class BTree implements BTreeInterface {
 
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void insert(TreeObject obj) throws IOException {
+        BTreeNode oldRoot = root;
+        if (oldRoot.numKeys == 2 * degree - 1) {
+            BTreeNode newRoot = splitRoot(); // splitRoot() Handles disk/metadata updating
+            insertNonfull(newRoot, obj);
+        }
+        else {
+            insertNonfull(oldRoot, obj);
+        }
+    }
+
     private void splitChild(BTreeNode parent, int index) throws IOException {
         BTreeNode fullChild = diskRead(parent.getChild(index)); // y
         BTreeNode newNode = new BTreeNode(fullChild.isLeaf()); // z
         newNode.numKeys = degree - 1;
 
         //z gets y's greater half of keys
-        for (int j = 0; j < degree - 1; j++) {
+        for (int j = 0; j <= degree - 2; j++) {
             newNode.setKey(j, fullChild.getKeyAt(j + degree));
         }
 
         if (!fullChild.isLeaf()) {
-            for (int j = 0; j < degree; j++) {
+            for (int j = 0; j <= degree - 1; j++) {
                 newNode.setChild(j, fullChild.getChild(j + degree));
             }
         }
@@ -372,12 +395,13 @@ public class BTree implements BTreeInterface {
         }
         parent.setChild(index + 1, newNode.address);
 
-        for (int j = parent.numKeys; j >= index; j--) {
+        for (int j = parent.numKeys - 1; j >= index; j--) {
             parent.setKey(j + 1, parent.getKeyAt(j));
         }
         parent.setKey(index, fullChild.getKeyAt(degree - 1));
         parent.numKeys += 1;
 
+        this.numNodes += 1;
         diskWrite(fullChild);
         diskWrite(newNode);
         diskWrite(parent);
@@ -392,6 +416,7 @@ public class BTree implements BTreeInterface {
 
         splitChild(newRoot, 0);
 
+        this.numNodes += 1;
         diskWrite(newRoot); // Return value not needed as root address was updated already
         writeMetaData(); // Update metadata since root address changed
 
@@ -408,7 +433,7 @@ public class BTree implements BTreeInterface {
             }
 
             // If key is a duplicate, increment its count instead of inserting
-            if (i >= 0 && obj.compareTo(node.getKeyAt(i)) == 0) {
+            if (i >= 0 && obj.equals(node.getKeyAt(i))) {
                 node.getKeyAt(i).incCount();
                 diskWrite(node);
                 return;
@@ -424,22 +449,22 @@ public class BTree implements BTreeInterface {
             }
 
             // If key is a duplicate, increment its count instead of inserting
-            if (i >= 0 && obj.compareTo(node.getKeyAt(i)) == 0) {
-                node.getKeyAt(i).incCount();
-                diskWrite(node);
-                return;
-            }
+//            if (i >= 0 && obj.compareTo(node.getKeyAt(i)) == 0) {
+//                node.getKeyAt(i).incCount();
+//                diskWrite(node);
+//                return;
+//            }
 
             i += 1;
             BTreeNode newNode = diskRead(node.getChild(i));
-            if (newNode.numKeys == 2 * degree - 1) { // If child is full, split it
+            if (newNode.isFull()) { // If child is full, split it
                 splitChild(node, i);
                 if (obj.compareTo(node.getKeyAt(i)) > 0) {
                     i += 1;
                     newNode = diskRead(node.getChild(i));
                 }
             }
-            insertNonfull(newNode, obj);
+            insertNonfull(diskRead(node.getChild(i)), obj);
         }
     }
 
@@ -514,8 +539,6 @@ public class BTree implements BTreeInterface {
         private boolean leaf;
         private long[] children;
         private long address; // Disk offset (bytes)
-
-        private int n;
 
         /**
          * Calculate the size of a node as stored on disk (in bytes). We will store boolean
