@@ -21,7 +21,6 @@ import static org.junit.Assert.*;
  * @author CS321 instructors
  */
 public class BTreeTest {
-
     /**
      * Use the same filename for each time a BTree is created.
      */
@@ -51,9 +50,9 @@ public class BTreeTest {
 //      you can check the final state of the tree and
 //      assert that the constructed tree has the expected number of nodes and
 //      assert that some (or all) of the nodes have the expected values
-//    @Test
-//    public void btreeDegree4Test() throws BTreeException
-//    {
+    @Test
+    public void btreeDegree4Test() throws BTreeException, IOException
+    {
 //        int expectedNumberOfNodes = 10;
 //        BTree b = new BTree(4, testFilename);
 //        assertEquals(4, b.getDegree());
@@ -72,25 +71,25 @@ public class BTreeTest {
 //        {
 //            assertEquals(expectedNodesContent[i], b.getArrayOfNodeContentsForNodeIndex(i).toString());
 //        }
-////
-////        // it is expected that these nodes values will appear in the tree when
-////        // using a level traversal (i.e., root, then level 1 from left to right, then
-////        // level 2 from left to right, etc.)
-////        String[] expectedNodesContent = new String[]{
-////                "TBD, TBD",      //root content
-////                "TBD",           //first child of root content
-////                "TBD, TBD, TBD", //second child of root content
-////        };
-////
-////        assertEquals(expectedNumberOfNodes, bTree.getNumberOfNodes());
-////        for (int indexNode = 0; indexNode < expectedNumberOfNodes; indexNode++)
-////        {
-////            // root has indexNode=0,
-////            // first child of root has indexNode=1,
-////            // second child of root has indexNode=2, and so on.
-////            assertEquals(expectedNodesContent[indexNode], bTree.getArrayOfNodeContentsForNodeIndex(indexNode).toString());
-////        }
-//    }
+//
+//        // it is expected that these nodes values will appear in the tree when
+//        // using a level traversal (i.e., root, then level 1 from left to right, then
+//        // level 2 from left to right, etc.)
+//        String[] expectedNodesContent = new String[]{
+//                "TBD, TBD",      //root content
+//                "TBD",           //first child of root content
+//                "TBD, TBD, TBD", //second child of root content
+//        };
+//
+//        assertEquals(expectedNumberOfNodes, bTree.getNumberOfNodes());
+//        for (int indexNode = 0; indexNode < expectedNumberOfNodes; indexNode++)
+//        {
+//            // root has indexNode=0,
+//            // first child of root has indexNode=1,
+//            // second child of root has indexNode=2, and so on.
+//            assertEquals(expectedNodesContent[indexNode], bTree.getArrayOfNodeContentsForNodeIndex(indexNode).toString());
+//        }
+    }
 
     /**
      * Test simple creation of an empty BTree.
@@ -99,7 +98,7 @@ public class BTreeTest {
      * @throws BTreeException Exception thrown when BTree encounters an unexpected problem
      */
     @Test
-    public void testCreate() throws BTreeException{
+    public void testCreate() throws BTreeException, IOException{
 
 
         BTree b = new BTree(testFilename);
@@ -113,6 +112,7 @@ public class BTreeTest {
         //will have only 1 node, the root
         assertEquals(1, b.getNumberOfNodes());
 
+        b.close();
     }
 
     /**
@@ -121,12 +121,13 @@ public class BTreeTest {
      * @throws BTreeException Exception thrown when BTree encounters an unexpected problem
      */
     @Test
-    public void testCreateDegree () throws BTreeException {
+    public void testCreateDegree () throws BTreeException, IOException {
 
         BTree b = new BTree(3, testFilename);
 
         assertEquals(3, b.getDegree());
 
+        b.close();
     }
 
     /**
@@ -149,6 +150,8 @@ public class BTreeTest {
         assertEquals(0, b.getHeight());
 
         assertTrue(validateInserts(b, new String[]{"1"}));
+
+        b.close();
     }
 
     /**
@@ -173,6 +176,8 @@ public class BTreeTest {
         assertEquals(2, b.getHeight());
 
         assertTrue(validateInserts(b, input));
+
+        b.close();
     }
 
 
@@ -198,6 +203,8 @@ public class BTreeTest {
         assertEquals(2, b.getHeight());
 
         assertTrue(validateInserts(b, input));
+
+        b.close();
     }
 
 
@@ -221,6 +228,8 @@ public class BTreeTest {
         assertEquals(0, b.getHeight());
 
         assertTrue(validateInserts(b, new String[]{"1", "1", "1", "1", "1", "1", "1", "1", "1", "1"}));
+
+        b.close();
     }
 
 
@@ -245,6 +254,8 @@ public class BTreeTest {
         assertEquals(10000, b.getSize());
 
         assertTrue(validateInserts(b, input));
+
+        b.close();
     }
 
     /**
@@ -277,6 +288,8 @@ public class BTreeTest {
         assertEquals(3, b.getNumberOfNodes());
 
         assertTrue(validateInserts(b, input));
+
+        b.close();
     }
 
     /**
@@ -294,6 +307,8 @@ public class BTreeTest {
 
         assertNull(t);
 
+
+        b.close();
     }
 
     /**
@@ -318,6 +333,7 @@ public class BTreeTest {
 
         assertEquals(0, t.compareTo(obj));
 
+        b.close();
     }
 
 
@@ -344,6 +360,8 @@ public class BTreeTest {
         TreeObject obj = b.search("A");
 
         assertEquals("A", obj.getKey());
+
+        b.close();
     }
 
     /**
@@ -364,6 +382,8 @@ public class BTreeTest {
         TreeObject obj = b.search(key);
 
         assertEquals(1, obj.getCount());
+
+        b.close();
     }
 
     /**
@@ -386,6 +406,8 @@ public class BTreeTest {
         TreeObject obj = b.search(duplicateKey);
 
         assertEquals(10, obj.getCount());
+
+        b.close();
     }
 
     /**
@@ -399,7 +421,6 @@ public class BTreeTest {
         TreeObject t = new TreeObject(key, count);
 
         assertEquals(count, t.getCount());
-
     }
 
 
@@ -432,6 +453,8 @@ public class BTreeTest {
         assertEquals(2, obj.getCount());
 
         assertTrue(validateInserts(b, input));
+
+        b.close();
     }
 
 
@@ -460,6 +483,20 @@ public class BTreeTest {
         assertEquals(2, obj.getCount());
 
         assertTrue(validateInserts(b, input));
+
+        b.close();
+    }
+
+    /**
+     *
+     * @throws BTreeException
+     * @throws IOException
+     */
+    @Test
+    public void testBTreeDiskRead() throws BTreeException, IOException {
+        //TODO test saving btree to disk and 'resurrecting'
+
+        fail();
     }
 
 

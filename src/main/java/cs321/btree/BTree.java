@@ -119,7 +119,7 @@ public class BTree implements BTreeInterface {
      * @return the {@code BTreeNode} object
      * @throws IOException
      */
-    public BTreeNode diskRead(long diskAddress) throws IOException {
+    private BTreeNode diskRead(long diskAddress) throws IOException {
         if (diskAddress == 0) {
             return null;
         }
@@ -158,20 +158,25 @@ public class BTree implements BTreeInterface {
         boolean leaf = (buffer.get() == 1);
 
         // Create BTreeNode before reading children to avoid having to do two more loops
-        BTreeNode node = new BTreeNode(objects, leaf);
+        try {
+            BTreeNode node = new BTreeNode(objects, leaf);
 
-        // Set each child pointer value by reading (2 * degree) longs from buffer
-        int maxChildren = 2 * degree;
-        for (int i = 0; i < maxChildren; i++) {
-            long address = buffer.getLong();
-            node.setChild(i, address);
+            // Set each child pointer value by reading (2 * degree) longs from buffer
+            int maxChildren = 2 * degree;
+            for (int i = 0; i < maxChildren; i++) {
+                long address = buffer.getLong();
+                node.setChild(i, address);
+            }
+
+            // Assign numKeys and address value to finish populating node object
+            node.numKeys = numKeys;
+            node.address = diskAddress;
+
+            return node;
+        } catch (BTreeException bte) {
+            System.err.println(bte.getMessage());
+            return null;
         }
-
-        // Assign numKeys and address value to finish populating node object
-        node.numKeys = numKeys;
-        node.address = diskAddress;
-
-        return node;
     }
 
     /**
@@ -363,7 +368,7 @@ public class BTree implements BTreeInterface {
     @Override
     public void insert(TreeObject obj) throws IOException {
         BTreeNode oldRoot = root;
-        if (oldRoot.numKeys == 2 * degree - 1) {
+        if (oldRoot.isFull()) {
             BTreeNode newRoot = splitRoot(); // splitRoot() Handles disk/metadata updating
             insertNonfull(newRoot, obj);
         }
@@ -373,54 +378,63 @@ public class BTree implements BTreeInterface {
     }
 
     private void splitChild(BTreeNode parent, int index) throws IOException {
-        BTreeNode fullChild = diskRead(parent.getChild(index)); // y
-        BTreeNode newNode = new BTreeNode(fullChild.isLeaf()); // z
-        newNode.numKeys = degree - 1;
+        try {
+            BTreeNode fullChild = diskRead(parent.getChild(index)); // y
+            BTreeNode newNode = new BTreeNode(fullChild.isLeaf()); // z
+            newNode.numKeys = degree - 1;
 
-        //z gets y's greater half of keys
-        for (int j = 0; j <= degree - 2; j++) {
-            newNode.setKey(j, fullChild.getKeyAt(j + degree));
-        }
-
-        if (!fullChild.isLeaf()) {
-            for (int j = 0; j <= degree - 1; j++) {
-                newNode.setChild(j, fullChild.getChild(j + degree));
+            //z gets y's greater half of keys
+            for (int j = 0; j <= degree - 2; j++) {
+                newNode.setKey(j, fullChild.getKeyAt(j + degree));
             }
+
+            if (!fullChild.isLeaf()) {
+                for (int j = 0; j <= degree - 1; j++) {
+                    newNode.setChild(j, fullChild.getChild(j + degree));
+                }
+            }
+
+            fullChild.numKeys = degree - 1;
+
+            for (int j = parent.numKeys; j >= index + 1; j--) {
+                parent.setChild(j + 1, parent.getChild(j));
+            }
+            parent.setChild(index + 1, newNode.address);
+
+            for (int j = parent.numKeys - 1; j >= index; j--) {
+                parent.setKey(j + 1, parent.getKeyAt(j));
+            }
+            parent.setKey(index, fullChild.getKeyAt(degree - 1));
+            parent.numKeys += 1;
+
+            this.numNodes += 1;
+            diskWrite(fullChild);
+            diskWrite(newNode);
+            diskWrite(parent);
+        } catch (BTreeException bte) {
+            System.err.println(bte.getMessage());
         }
-
-        fullChild.numKeys = degree - 1;
-
-        for (int j = parent.numKeys; j >= index + 1; j--) {
-            parent.setChild(j + 1, parent.getChild(j));
-        }
-        parent.setChild(index + 1, newNode.address);
-
-        for (int j = parent.numKeys - 1; j >= index; j--) {
-            parent.setKey(j + 1, parent.getKeyAt(j));
-        }
-        parent.setKey(index, fullChild.getKeyAt(degree - 1));
-        parent.numKeys += 1;
-
-        this.numNodes += 1;
-        diskWrite(fullChild);
-        diskWrite(newNode);
-        diskWrite(parent);
     }
 
     private BTreeNode splitRoot() throws IOException {
-        BTreeNode oldRoot = root;
-        BTreeNode newRoot = new BTreeNode(false);
-        newRoot.setChild(0, oldRoot.address);
-        this.root = newRoot;
-        this.rootAddress = newRoot.address;
+        try {
+            BTreeNode oldRoot = root;
+            BTreeNode newRoot = new BTreeNode(false);
+            newRoot.setChild(0, oldRoot.address);
+            this.root = newRoot;
+            this.rootAddress = newRoot.address;
 
-        splitChild(newRoot, 0);
+            splitChild(newRoot, 0);
 
-        this.numNodes += 1;
-        diskWrite(newRoot); // Return value not needed as root address was updated already
-        writeMetaData(); // Update metadata since root address changed
+            this.numNodes += 1;
+            diskWrite(newRoot); // Return value not needed as root address was updated already
+            writeMetaData(); // Update metadata since root address changed
 
-        return newRoot;
+            return newRoot;
+        } catch (BTreeException bte) {
+            System.err.println(bte.getMessage());
+            return null;
+        }
     }
 
     private void insertNonfull(BTreeNode node, TreeObject obj) throws IOException {
@@ -531,6 +545,13 @@ public class BTree implements BTreeInterface {
         }
     }
 
+    public void close() throws IOException {
+        if (fileChannel != null && fileChannel.isOpen()) {
+//            writeMetaData(); // TODO is this needed?
+            fileChannel.close();
+        }
+    }
+
     /**
      * Gets the size (in bytes) of a {@code BTreeNode} in a {@code BTree} with given degree.
      * @param degree the degree of the {@code BTree}
@@ -562,8 +583,10 @@ public class BTree implements BTreeInterface {
          * @param keys
          * @param leaf
          */
-        public BTreeNode(TreeObject[] keys, boolean leaf) {
-            //TODO: validate that keys is length (2 * degree - 1)?
+        public BTreeNode(TreeObject[] keys, boolean leaf) throws BTreeException {
+            if (keys.length != 2 * degree - 1) {
+                throw new BTreeException("keys array length does not match degree array length");
+            }
 
             this.keys = keys;
             this.leaf = leaf;
@@ -582,14 +605,13 @@ public class BTree implements BTreeInterface {
             // Set disk address and update pointer
             address = nextDiskAddress;
             nextDiskAddress += nodeSize;
-
         }
 
         /**
          * Creates a new {@code BTreeNode} with an empty {@code keys} array and given leaf status.
          * @param leaf whether the created node is a leaf (has no children)
          */
-        public BTreeNode(boolean leaf) {
+        public BTreeNode(boolean leaf) throws BTreeException {
             this(new TreeObject[2 * degree - 1], leaf);
         }
 
