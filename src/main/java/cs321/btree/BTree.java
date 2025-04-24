@@ -335,10 +335,10 @@ public class BTree implements BTreeInterface {
      */
     private TreeObject searchFromNode(String key, BTreeNode node) throws IOException {
         int i = 0;
-        while (i < numNodes && key.compareTo(node.getKeyAt(i).getKey()) > 0) {
+        while (i < node.numKeys && key.compareTo(node.getKeyAt(i).getKey()) > 0) {
             i += 1;
         }
-        if (i < node.numKeys && key.equals(node.getKeyAt(i).getKey())) {
+        if (i < node.numKeys && key.compareTo(node.getKeyAt(i).getKey()) == 0) {
             return node.getKeyAt(i);
         }
         else if (node.isLeaf()) {
@@ -433,7 +433,7 @@ public class BTree implements BTreeInterface {
             }
 
             // If key is a duplicate, increment its count instead of inserting
-            if (i >= 0 && obj.equals(node.getKeyAt(i))) {
+            if (i >= 0 && obj.compareTo(node.getKeyAt(i)) == 0) {
                 node.getKeyAt(i).incCount();
                 diskWrite(node);
                 return;
@@ -449,19 +449,30 @@ public class BTree implements BTreeInterface {
             }
 
             // If key is a duplicate, increment its count instead of inserting
-//            if (i >= 0 && obj.compareTo(node.getKeyAt(i)) == 0) {
-//                node.getKeyAt(i).incCount();
-//                diskWrite(node);
-//                return;
-//            }
+            if (i >= 0 && obj.compareTo(node.getKeyAt(i)) == 0) {
+                node.getKeyAt(i).incCount();
+                diskWrite(node);
+                return;
+            }
 
             i += 1;
-            BTreeNode newNode = diskRead(node.getChild(i));
-            if (newNode.isFull()) { // If child is full, split it
+            BTreeNode child = diskRead(node.getChild(i));
+
+            // Before splitting check if there is a duplicate within child
+            // If duplicate found, increment count instead of inserting
+            for (int j = 0; j < child.numKeys; j++) {
+                if (obj.compareTo(child.getKeyAt(j)) == 0) {
+                    child.getKeyAt(j).incCount();
+                    diskWrite(child);
+                    return;
+                }
+            }
+
+            if (child.isFull()) { // If child is full, split it
                 splitChild(node, i);
                 if (obj.compareTo(node.getKeyAt(i)) > 0) {
                     i += 1;
-                    newNode = diskRead(node.getChild(i));
+                    child = diskRead(node.getChild(i));
                 }
             }
             insertNonfull(diskRead(node.getChild(i)), obj);
