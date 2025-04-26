@@ -13,7 +13,7 @@ public class SSHSearchDatabase {
      * String holding the static part of the {@code type} argument used in running this program. Used for parsing
      * command-line arguments.
      */
-    static final String TYPE_FLAG = "--type=";
+    private static final String TYPE_FLAG = "--type=";
 
     /**
      * String holding the static part of the {@code database} argument used in running this program. Used for parsing
