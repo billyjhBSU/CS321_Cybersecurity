@@ -1,9 +1,14 @@
 package cs321.create;
 
+import cs321.btree.BTree;
+import cs321.btree.BTreeException;
 import cs321.common.ParseArgumentException;
+
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class SSHCreateBTree {
@@ -18,7 +23,7 @@ public class SSHCreateBTree {
     private static final String DEBUG_FLAG = "--debug=";
     private static int cacheArg = -1;
     private static int degreeArg = -1;
-    private static String sshArg = null;
+    private static String sshFile = null;
     private static String typeArg = null;
     private static int cacheSizeArg = -1;
     private static Boolean databaseArg = null;
@@ -39,18 +44,72 @@ public class SSHCreateBTree {
         }
 
         String fileName = "SSH_log.txt.ssh.btree." + typeArg + "." + degreeArg;
-        RandomAccessFile outputFile = null;
-        Scanner fileScanner = null;
+        BTree bTree;
         try {
-            outputFile = new RandomAccessFile(fileName, "rw");
-            fileScanner = new Scanner(new File(sshArg));
-        } catch (IOException e) {
+            bTree = new BTree(degreeArg, fileName);
+            File logs = new File(sshFile);
+            Scanner scan = new Scanner(logs);
+            while(scan.hasNextLine()){
+                String line = scan.nextLine();
+                ArrayList<String> keys = getTokens(line, typeArg);
+                for(int i = 0; i <= keys.size(); i++){
+                    TreeObject obj = new TreeObject();
+
+                }
+
+            }
+        } catch (BTreeException | FileNotFoundException e)  {
             System.err.println(e.getMessage());
             e.printStackTrace();
         }
 
-        fileScanner.nextLine();
+//        fileScanner.nextLine();
     }
+
+    private static ArrayList<String> getTokens(String line, String type){
+        ArrayList<String> output = new ArrayList<>();
+        String[] parts = line.split("\\s+");
+        if(parts.length < 4 || parts.length > 5){
+            return output; // or add to the file
+        }
+        String date = parts[0];
+        String time = parts[1];
+        String status = parts[2];
+        String ip = parts[3];
+
+        // Make sure to change the strings to the variables when adding to the output list.
+        switch (type){
+            case "accepted-ip":
+                output.add("Accepted-" + ip);
+                break;
+            case "accepted-time":
+                output.add("Accepted-" + time);
+                break;
+            case "invalid-ip":
+                output.add("Invalid-" + ip);
+                break;
+            case "invalid-time":
+                output.add("Invalid-" + time);
+                break;
+            case "failed-ip":
+                output.add("Failed-" + ip);
+                break;
+            case "failed-time":
+                output.add("Failed-" + time);
+                break;
+            case "reverseaddress-ip":
+                output.add("ReverseORAddress" + ip);
+                break;
+            case "reverseaddress-time":
+                output.add("ReverseORAddress" + time);
+                break;
+            case "user-ip":
+                output.add("User-" + ip);
+                break;
+        }
+        return output;
+    }
+
 
     private static void parseArguments(String[] args) throws ParseArgumentException
     {
@@ -66,7 +125,7 @@ public class SSHCreateBTree {
             }
             if (s.startsWith(SSH_FLAG))
             {
-                sshArg = s.substring(SSH_FLAG.length());
+                sshFile = s.substring(SSH_FLAG.length());
             }
             if (s.startsWith(TYPE_FLAG))
             {
@@ -105,7 +164,7 @@ public class SSHCreateBTree {
         {
             throw new ParseArgumentException("No degree arg provided.");
         }
-        if (sshArg == null)
+        if (sshFile == null)
         {
             throw new ParseArgumentException("No sshFile arg provided.");
         }
