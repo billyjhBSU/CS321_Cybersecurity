@@ -9,6 +9,7 @@ import cs321.common.ParseArgumentException;
 import java.io.FileNotFoundException;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -82,6 +83,16 @@ public class SSHCreateBTree {
                 // Entire line has been scanned, so move to next line
 //                String line = scan.nextLine();
                 //TODO close scanner
+            }
+            if(debugArg == 1){
+                String fileDumpName = "dump-" + typeArg + "." + degreeArg + ".txt";
+                PrintWriter write = new PrintWriter(fileDumpName);
+                bTree.dumpToFile(write);
+                write.close();
+            }
+            if(databaseArg) {
+                // create database
+                // idk how
             }
         } catch (BTreeException | FileNotFoundException e)  {
             System.err.println(e.getMessage());
