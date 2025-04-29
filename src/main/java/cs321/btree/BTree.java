@@ -1,5 +1,7 @@
 package cs321.btree;
 
+import cs321.common.KeyInterface;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -312,7 +314,35 @@ public class BTree implements BTreeInterface {
      */
     @Override
     public void dumpToFile(PrintWriter out) throws IOException {
+        recursiveDump(root, out);
+    }
 
+    /**
+     * In-order traversal at a given node in a BTree then writes
+     * the key and frequency using PrintWriter
+     * @param node current node
+     * @param out PrintWriter to write key and count
+     * @throws IOException
+     * Note from Ado: if editing look at: https://www.geeksforgeeks.org/tree-traversals-inorder-preorder-and-postorder/
+     */
+    public void recursiveDump(BTreeNode node, PrintWriter out) throws IOException{
+        if(root == null){
+            return;
+        }
+        for(int i = 0; i < node.numKeys; i++){
+            if(!node.isLeaf()){
+                BTreeNode child = diskRead(node.getChild(i));
+                recursiveDump(child, out);
+            }
+            TreeObject obj = node.getKeyAt(i);
+            if(obj != null){
+                out.println(obj.getKey() + " " + obj.getCount());
+            }
+        }
+        if(!node.isLeaf()){
+            BTreeNode child = diskRead(node.getChild(node.numKeys));
+            recursiveDump(child, out);
+        }
     }
 
     /**
@@ -564,7 +594,7 @@ public class BTree implements BTreeInterface {
                 1; // Leaf flag
     }
 
-    private class BTreeNode {
+    public class BTreeNode {
 
         private TreeObject[] keys;
         private int numKeys;
@@ -667,6 +697,7 @@ public class BTree implements BTreeInterface {
         public long getChild(int i) {
             return children[i];
         }
+
     }
 
 
