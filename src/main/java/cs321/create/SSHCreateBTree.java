@@ -1,13 +1,14 @@
 package cs321.create;
 
+import com.sun.source.tree.Tree;
 import cs321.btree.BTree;
 import cs321.btree.BTreeException;
+import cs321.btree.TreeObject;
 import cs321.common.ParseArgumentException;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.File;
-import java.io.RandomAccessFile;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -21,6 +22,7 @@ public class SSHCreateBTree {
     private static final String CACHE_SIZE_FLAG = "--cache-size=";
     private static final String DATABASE_FLAG = "--database=";
     private static final String DEBUG_FLAG = "--debug=";
+
     private static int cacheArg = -1;
     private static int degreeArg = -1;
     private static String sshFile = null;
@@ -49,21 +51,159 @@ public class SSHCreateBTree {
             bTree = new BTree(degreeArg, fileName);
             File logs = new File(sshFile);
             Scanner scan = new Scanner(logs);
-            while(scan.hasNextLine()){
-                String line = scan.nextLine();
-                ArrayList<String> keys = getTokens(line, typeArg);
-                for(int i = 0; i <= keys.size(); i++){
-                    TreeObject obj = new TreeObject();
+            while(scan.hasNextLine()) {
+                // Here, we are inside one line of the log file
+                // 1. Get key from line & add to BTree
+                    // Each line should correspond to 1 TreeObject
+                // 2. Add key to dumpfile (if debug == 1)
 
-                }
+                // Tokenize the line
+                // [date], [time], [status], [ip], [user]
+                String[] lineTokens = getTokens(scan.nextLine());
 
+
+                // Now we have tokenized the line
+
+                // Now we need to add the key to the BTree
+                // And to the dump file if debug == 1
+
+                // Adding key to BTree:
+                // Here we need to create the right type of TreeObject based on
+                // typeArg
+                // e.g., if typeArg=="accepted-ip", then key will be "Accepted-###.###.##.##"
+                //       if typeArg=="invalid-ip", key will be        "Invalid-###.###.##.##"
+
+
+                addNewTreeObject(lineTokens, bTree, typeArg);
+
+
+
+
+                // Entire line has been scanned, so move to next line
+//                String line = scan.nextLine();
+                //TODO close scanner
             }
         } catch (BTreeException | FileNotFoundException e)  {
+            System.err.println(e.getMessage());
+            e.printStackTrace();
+        } catch (IOException e) {
             System.err.println(e.getMessage());
             e.printStackTrace();
         }
 
 //        fileScanner.nextLine();
+    }
+
+    /**
+     * blah blah blah [date], [time], [status], [ip], [user] blah blah blah TODO
+     * @param lineTokens
+     * @param bTree
+     * @return whether an object was inserted
+     */
+    private static boolean addNewTreeObject(String[] lineTokens, BTree bTree, String type) throws IOException {
+        boolean inserted = false;
+        String time   = lineTokens[1];
+        String status = lineTokens[2];
+        String ip     = lineTokens[3];
+        String user   = lineTokens[4];
+
+        // time should be HH:MM, so extract first 5 characters of time string
+        time = time.substring(0, 5 - 1);
+
+        switch(type) {
+            case "accepted-ip":
+                if (status.equalsIgnoreCase("accepted")) {
+                    bTree.insert(new TreeObject("Accepted-" + ip));
+                    inserted = true;
+                }
+                break;
+            case "accepted-time":
+                if (status.equalsIgnoreCase("accepted")) {
+                    bTree.insert(new TreeObject("Accepted-" + time));
+                    inserted = true;
+                }
+                break;
+            case "invalid-ip":
+                if (status.equalsIgnoreCase("invalid")) {
+                    bTree.insert(new TreeObject("Invalid-" + ip));
+                    inserted = true;
+                }
+                break;
+            case "invalid-time":
+                if (status.equalsIgnoreCase("invalid")) {
+                    bTree.insert(new TreeObject("Invalid-" + time));
+                    inserted = true;
+                }
+                break;
+            case "failed-ip":
+                if (status.equalsIgnoreCase("failed")) {
+                    bTree.insert(new TreeObject("Failed-" + ip));
+                    inserted = true;
+                }
+                break;
+            case "failed-time":
+                if (status.equalsIgnoreCase("failed")) {
+                    bTree.insert(new TreeObject("Failed-" + time));
+                    inserted = true;
+                }
+                break;
+            case "reverseaddress-ip":
+                if (status.equalsIgnoreCase("reverse") || status.equalsIgnoreCase("address")) {
+                    bTree.insert(new TreeObject(status + "-" + ip));
+                    inserted = true;
+                }
+                break;
+            case "reverseaddress-time":
+                if (status.equalsIgnoreCase("reverse") || status.equalsIgnoreCase("address")) {
+                    bTree.insert(new TreeObject(status + "-" + time));
+                    inserted = true;
+                }
+                break;
+            case "user-ip":
+                if (user != null) {
+                    bTree.insert(new TreeObject(user + "-" + ip));
+                    inserted = true;
+                }
+                break;
+        }
+
+        return inserted;
+    }
+
+    /**
+     * [date], [time], [status], [ip], [user]
+     * @param line
+     * @return
+     */
+    private static String[] getTokens(String line) {
+        Scanner lineScan = new Scanner(line);
+        String[] tokens = new String[5];
+
+        tokens[0] = lineScan.next(); // First token: date
+        tokens[1] = lineScan.next(); // Second token: time
+        tokens[2] = lineScan.next(); // Third token: status
+        if ("Address".equals(tokens[2])) {
+            tokens[3] = lineScan.next(); // Fourth token: ip
+            if (lineScan.hasNext()) { // If user token exists
+                tokens[4] = lineScan.next();
+            }
+        }
+        else if ("reverse".equals(tokens[2])) {
+            // If status = reverse, next two tokens are either user followed by ip,
+            // or just ip
+            String dummy = lineScan.next(); // Either username or ip
+            if (lineScan.hasNext()) {
+                // Fifth token, if it exists, must be ip
+                tokens[3] = lineScan.next(); // ip
+                tokens[4] = dummy; // Username
+            }
+            else {
+                tokens[3] = dummy; // ip
+            }
+        }
+
+        lineScan.close();
+        return tokens;
     }
 
     private static ArrayList<String> getTokens(String line, String type){
