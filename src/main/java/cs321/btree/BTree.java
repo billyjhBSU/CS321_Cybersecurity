@@ -6,6 +6,10 @@ import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
@@ -348,7 +352,36 @@ public class BTree implements BTreeInterface {
      */
     @Override
     public void dumpToDatabase(String dbName, String tableName) throws IOException {
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + dbName))
+        {
+            Statement statement = connection.createStatement();
+            statement.setQueryTimeout(30);
+            recursiveDumpToDatabase(root, statement, tableName);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
+    private void recursiveDumpToDatabase(BTreeNode node, Statement statement, String tableName) throws SQLException, IOException
+    {
+        if(root == null){
+            return;
+        }
+        for(int i = 0; i < node.numKeys; i++){
+            if(!node.isLeaf()){
+                BTreeNode child = diskRead(node.getChild(i));
+                recursiveDumpToDatabase(child, statement, tableName);
+            }
+            TreeObject obj = node.getKeyAt(i);
+            if(obj != null){
+                String value = "('" + obj.getKey() + "', " + obj.getCount() + ")";
+                statement.executeUpdate("INSERT INTO " + tableName + " VALUES " + value);
+            }
+        }
+        if(!node.isLeaf()){
+            BTreeNode child = diskRead(node.getChild(node.numKeys));
+            recursiveDumpToDatabase(child, statement, tableName);
+        }
     }
 
     /**

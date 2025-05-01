@@ -9,6 +9,10 @@ import java.io.FileNotFoundException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -22,6 +26,7 @@ public class SSHCreateBTree {
     private static final String CACHE_SIZE_FLAG = "--cache-size=";
     private static final String DATABASE_FLAG = "--database=";
     private static final String DEBUG_FLAG = "--debug=";
+    private static final String DATABASE_PATH = "SSHLogDB.db";
 
     private static int cacheArg = -1;
     private static int degreeArg = -1;
@@ -83,6 +88,8 @@ public class SSHCreateBTree {
 //                String line = scan.nextLine();
                 //TODO close scanner
             }
+            scan.close();
+
             if(debugArg == 1){
                 String fileDumpName = "dump-" + typeArg + "." + degreeArg + ".txt";
                 PrintWriter write = new PrintWriter(fileDumpName);
@@ -90,8 +97,8 @@ public class SSHCreateBTree {
                 write.close();
             }
             if(databaseArg) {
-                // create database
-                // idk how
+                String tableName = typeArg.replace("-","");
+                bTree.dumpToDatabase(DATABASE_PATH, tableName);
             }
         } catch (BTreeException | FileNotFoundException e)  {
             System.err.println(e.getMessage());
@@ -100,8 +107,6 @@ public class SSHCreateBTree {
             System.err.println(e.getMessage());
             e.printStackTrace();
         }
-
-//        fileScanner.nextLine();
     }
 
     /**
@@ -215,51 +220,6 @@ public class SSHCreateBTree {
         lineScan.close();
         return tokens;
     }
-
-    private static ArrayList<String> getTokens(String line, String type){
-        ArrayList<String> output = new ArrayList<>();
-        String[] parts = line.split("\\s+");
-        if(parts.length < 4 || parts.length > 5){
-            return output; // or add to the file
-        }
-        String date = parts[0];
-        String time = parts[1];
-        String status = parts[2];
-        String ip = parts[3];
-
-        // Make sure to change the strings to the variables when adding to the output list.
-        switch (type){
-            case "accepted-ip":
-                output.add("Accepted-" + ip);
-                break;
-            case "accepted-time":
-                output.add("Accepted-" + time);
-                break;
-            case "invalid-ip":
-                output.add("Invalid-" + ip);
-                break;
-            case "invalid-time":
-                output.add("Invalid-" + time);
-                break;
-            case "failed-ip":
-                output.add("Failed-" + ip);
-                break;
-            case "failed-time":
-                output.add("Failed-" + time);
-                break;
-            case "reverseaddress-ip":
-                output.add("ReverseORAddress" + ip);
-                break;
-            case "reverseaddress-time":
-                output.add("ReverseORAddress" + time);
-                break;
-            case "user-ip":
-                output.add("User-" + ip);
-                break;
-        }
-        return output;
-    }
-
 
     private static void parseArguments(String[] args) throws ParseArgumentException
     {
