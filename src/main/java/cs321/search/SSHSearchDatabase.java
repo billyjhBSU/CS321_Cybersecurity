@@ -63,7 +63,6 @@ public class SSHSearchDatabase {
      * @param args the command-line arguments
      */
     public static void main(String[] args){
-//        System.out.println("Hello world from cs321.search.SSHSearchDatabase.main");
         String[] parsedArgs = parseArguments(args);
         try {
             validateArgs(parsedArgs);

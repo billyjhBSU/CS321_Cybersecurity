@@ -100,6 +100,7 @@ public class SSHCreateBTree {
                 String tableName = typeArg.replace("-","");
                 bTree.dumpToDatabase(DATABASE_PATH, tableName);
             }
+            bTree.close();
         } catch (BTreeException | FileNotFoundException e)  {
             System.err.println(e.getMessage());
             e.printStackTrace();
@@ -257,7 +258,7 @@ public class SSHCreateBTree {
                 }
                 else
                 {
-                    throw new ParseArgumentException("Must be either yes or no.");
+                    throw new ParseArgumentException("<database> must be either yes or no.");
                 }
             }
             if (s.startsWith(DEBUG_FLAG))
@@ -286,12 +287,9 @@ public class SSHCreateBTree {
         {
             throw new ParseArgumentException("No database arg provided.");
         }
-        if (cacheArg == 1)
+        if (cacheArg == 1 && cacheSizeArg == -1)
         {
-            if (cacheSizeArg == -1)
-            {
                 throw new ParseArgumentException("No cacheSize arg provided.");
-            }
         }
 
         boolean flag = false;
@@ -302,7 +300,7 @@ public class SSHCreateBTree {
                 flag = true;
             }
         }
-        if (flag == false)
+        if (!flag)
         {
             throw new ParseArgumentException("Not one of the allowed types.");
         }

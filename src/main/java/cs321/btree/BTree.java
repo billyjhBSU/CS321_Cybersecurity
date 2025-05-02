@@ -328,7 +328,7 @@ public class BTree implements BTreeInterface {
      * Note from Ado: if editing look at: https://www.geeksforgeeks.org/tree-traversals-inorder-preorder-and-postorder/
      */
     public void recursiveDump(BTreeNode node, PrintWriter out) throws IOException{
-        if(root == null){
+        if(node == null){
             return;
         }
         for(int i = 0; i < node.numKeys; i++){
@@ -356,6 +356,7 @@ public class BTree implements BTreeInterface {
         {
             Statement statement = connection.createStatement();
             statement.setQueryTimeout(30);
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS " + tableName + " (key TEXT PRIMARY KEY, count INTEGER");
             recursiveDumpToDatabase(root, statement, tableName);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -364,7 +365,7 @@ public class BTree implements BTreeInterface {
 
     private void recursiveDumpToDatabase(BTreeNode node, Statement statement, String tableName) throws SQLException, IOException
     {
-        if(root == null){
+        if(node == null){
             return;
         }
         for(int i = 0; i < node.numKeys; i++){
@@ -608,7 +609,6 @@ public class BTree implements BTreeInterface {
 
     public void close() throws IOException {
         if (fileChannel != null && fileChannel.isOpen()) {
-//            writeMetaData(); // TODO is this needed?
             fileChannel.close();
         }
     }
