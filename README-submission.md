@@ -34,7 +34,8 @@ from running the best that it possibly can.
 
 ## Reflection (Team member name: Adnan Maksic)
 I too struggled with this project. Some things could've been more clear and more concise, such as the readme
-but the one confusing thing is not understanding sqlite and how to implement cache. Also, when looking at different forum posts
+but the one confusing thing is not understanding sqlite and how to implement cache. But that should not be to blame.
+Also, when looking at different forum posts
 such as stackoverflow for help, everyone has a different implementation of btrees. For an example, people would use different adts implemented
 in the node, or sometimes the btree itself which I thought was confusing; but I tried both and neither worked.
 It runs, not perfectly nor with the correct results, I think some further debugging is needed.
