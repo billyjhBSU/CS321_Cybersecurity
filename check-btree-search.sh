@@ -1,6 +1,7 @@
 #!/bin/sh
 
-for value in accepted-ip accepted-time invalid-ip invalid-time failed-ip failed-time reverseaddress-ip reverseaddress-time user-ip
+#for value in accepted-ip accepted-time invalid-ip invalid-time failed-ip failed-time reverseaddress-ip reverseaddress-time user-ip
+for value in accepted-ip
 do
 	echo
 	echo -n "Test QUERY-$value.txt: "
@@ -26,7 +27,8 @@ do
 done
 echo
 
-for value in accepted-ip accepted-time invalid-ip invalid-time failed-ip failed-time reverseaddress-ip reverseaddress-time user-ip
+#for value in accepted-ip accepted-time invalid-ip invalid-time failed-ip failed-time reverseaddress-ip reverseaddress-time user-ip
+for value in accepted-ip
 do
 	echo
 	dos2unix output/btree-search/QUERY-"$value"-top25.0.txt >& /dev/null

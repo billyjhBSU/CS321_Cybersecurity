@@ -23,10 +23,11 @@ public class SSHCreateBTree {
     private static final String DEGREE_FLAG = "--degree=";
     private static final String SSH_FLAG = "--sshFile=";
     private static final String TYPE_FLAG = "--type=";
-    private static final String CACHE_SIZE_FLAG = "--cache-size=";
+    private static final String CACHE_SIZE_FLAG = "--cacheSize=";
     private static final String DATABASE_FLAG = "--database=";
     private static final String DEBUG_FLAG = "--debug=";
     private static final String DATABASE_PATH = "SSHLogDB.db";
+    private static final int DISK_BLOCK_SIZE = 4096;
 
     private static int cacheArg = -1;
     private static int degreeArg = -1;
@@ -50,10 +51,11 @@ public class SSHCreateBTree {
             e.printStackTrace();
         }
 
+        int degree = (degreeArg == 0) ? BTree.calculateOptimalMinimumDegree(DISK_BLOCK_SIZE) : degreeArg;
         String fileName = "SSH_log.txt.ssh.btree." + typeArg + "." + degreeArg;
         BTree bTree;
         try {
-            bTree = new BTree(degreeArg, fileName);
+            bTree = new BTree(degree, fileName);
             File logs = new File(sshFile);
             Scanner scan = new Scanner(logs);
             while(scan.hasNextLine()) {
@@ -80,9 +82,6 @@ public class SSHCreateBTree {
 
 
                 addNewTreeObject(lineTokens, bTree, typeArg);
-
-
-
 
                 // Entire line has been scanned, so move to next line
 //                String line = scan.nextLine();
@@ -217,7 +216,10 @@ public class SSHCreateBTree {
                 tokens[3] = dummy; // ip
             }
         }
-
+        else { // status = Accepted, Invalid, or Failed: standard line (all 5 fields)
+            tokens[4] = lineScan.next(); // Username
+            tokens[3] = lineScan.next(); // IP
+        }
         lineScan.close();
         return tokens;
     }
@@ -289,7 +291,7 @@ public class SSHCreateBTree {
         }
         if (cacheArg == 1 && cacheSizeArg == -1)
         {
-                throw new ParseArgumentException("No cacheSize arg provided.");
+            throw new ParseArgumentException("No cacheSize arg provided.");
         }
 
         boolean flag = false;

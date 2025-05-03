@@ -83,6 +83,35 @@ public class BTree implements BTreeInterface {
     }
 
     /**
+     * Calculates the optimal degree for a BTree with given disk block size based on the size of a {@code BTreeNode}.
+     * The math for doing so can be explained as follows:
+     * <br><br>
+     * Let {@code blockSize} = {@code s}. We need to find the optimal degree {@code t} such that
+     * {@link #getNodeSize(int degree)} <= {@code blockSize}, where {@code t == degree}. Given:
+     * <ul>
+     *     <li> {@code TreeObject.BYTES} = 12</li>
+     *     <li> {@code Integer.BYTES} = 4</li>
+     *     <li> {@code Long.BYTES} = 8</li>
+     * </ul>
+     * We substitute:
+     * <br>
+     * {@code getNodeSize(t)} = 4 + (2{@code t} - 1) * 12 + 2{@code t} * 8 + 1 = 40{@code t} - 7.
+     * <br>
+     * We then set this less than or equal to {@code s}:
+     * <br>
+     * 40{@code t} - 7 <= {@code s}.
+     * <br>
+     * This gives us:
+     * {@code s} = floor(({@code s} + 7)/40)
+     *
+     * @param blockSize
+     * @return
+     */
+    public static int calculateOptimalMinimumDegree(int blockSize) {
+        return (int) Math.floor((blockSize + 7)/40.0);
+    }
+
+    /**
      * Read the metadata from the data file.
      * @throws IOException
      */
@@ -632,12 +661,6 @@ public class BTree implements BTreeInterface {
         private boolean leaf;
         private long[] children;
         private long address; // Disk offset (bytes)
-
-        /**
-         * Calculate the size of a node as stored on disk (in bytes). We will store boolean
-         * as 1 byte as its size is not defined in Java
-         */
-//        final private int BYTES = getNodeSize(degree);
 
         /**
          * TODO
