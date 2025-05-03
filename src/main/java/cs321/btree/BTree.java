@@ -379,13 +379,12 @@ public class BTree implements BTreeInterface {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void dumpToDatabase(String dbName, String tableName) throws IOException {
         try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + dbName))
         {
             Statement statement = connection.createStatement();
             statement.setQueryTimeout(30);
-            statement.executeUpdate("CREATE TABLE IF NOT EXISTS " + tableName + " (key TEXT PRIMARY KEY, count INTEGER");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS " + tableName + " (key TEXT PRIMARY KEY, count INTEGER)");
             recursiveDumpToDatabase(root, statement, tableName);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -405,7 +404,7 @@ public class BTree implements BTreeInterface {
             TreeObject obj = node.getKeyAt(i);
             if(obj != null){
                 String value = "('" + obj.getKey() + "', " + obj.getCount() + ")";
-                statement.executeUpdate("INSERT INTO " + tableName + " VALUES " + value);
+                statement.executeUpdate("INSERT OR IGNORE INTO " + tableName + " (key, count) VALUES ('" + obj.getKey() + "', " + obj.getCount() + ")");
             }
         }
         if(!node.isLeaf()){
